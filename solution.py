@@ -102,11 +102,39 @@ class Solver:
         :param state: given state (GameState object)
         :return a real number h(n)
         """
-        pass
+        uncovered_targets = 0
+        widget_cells = [
+            widget_get_occupied_cells(self.environment.widget_types[i], state.widget_centres[i], state.widget_orients[i])
+            for i in range(self.environment.n_widgets)
+        ]
+
+        for tgt in self.environment.target_list:
+            if not any(tgt in widget_cells[i] for i in range(self.environment.n_widgets)):
+                uncovered_targets += 1
+
+        return uncovered_targets
 
     def solve_a_star(self):
         """
         Find a path which solves the environment using A* search.
         :return: path (list of actions, where each action is an element of BEE_ACTIONS)
         """
-        pass
+        initial_state = self.environment.get_init_state()
+        frontier = [(0 + self.compute_heuristic(initial_state), self.StateNode(self.environment, initial_state))]
+        heapq.heapify(frontier)
+
+        visited = {initial_state: 0}
+        n_expanded = 0
+        while len(frontier) > 0:
+            self.loop_counter.inc()
+            n_expanded += 1
+            _, node = heapq.heappop(frontier)
+
+            if self.environment.is_solved(node.state):
+                return node.get_path()
+            
+            successors = node.get_successors()
+            for s in successors:
+                if s.state not in visited.keys() or s.cost < visited[s.state]:
+                    visited[s.state] = s.cost
+                    heapq.heappush(frontier, (s.cost + self.compute_heuristic(s.state), s))
