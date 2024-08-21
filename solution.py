@@ -94,7 +94,7 @@ class Solver:
         """
         Perform pre-processing (e.g. pre-computing repeatedly used values) necessary for your heuristic,
         """
-        pass
+        
 
     def compute_heuristic(self, state):
         """
@@ -103,16 +103,36 @@ class Solver:
         :return a real number h(n)
         """
         uncovered_targets = 0
+        total_distance = 0
         widget_cells = [
             widget_get_occupied_cells(self.environment.widget_types[i], state.widget_centres[i], state.widget_orients[i])
             for i in range(self.environment.n_widgets)
         ]
 
         for tgt in self.environment.target_list:
-            if not any(tgt in widget_cells[i] for i in range(self.environment.n_widgets)):
-                uncovered_targets += 1
+            min_distance = float('inf')
+            target_covered = False
+            for i in range(self.environment.n_widgets):
+                if tgt in widget_cells[i]:
+                    target_covered = True
+                    break
+                for cell in widget_cells[i]:
+                    # Manhattan distance of widget
+                    distance = abs(tgt[0] - cell[0]) + abs(tgt[1] - cell[1])
+                    min_distance = min(min_distance, distance)
 
-        return uncovered_targets
+            if not target_covered:
+                uncovered_targets += 1
+                total_distance += min_distance
+        
+        bee_distance = float('inf')
+        for tgt in self.environment.target_list:
+            # Manhatton distance of bee to the widget target
+            distance = abs(tgt[0] - state.BEE_posit[0]) + abs(tgt[1] - state.BEE_posit[1])
+            bee_distance = min(bee_distance, distance)
+
+        heuristic = (uncovered_targets + total_distance + bee_distance) * (ACTION_PUSH_COST[FORWARD] - ACTION_PUSH_COST[REVERSE])
+        return heuristic
 
     def solve_a_star(self):
         """
