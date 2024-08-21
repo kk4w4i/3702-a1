@@ -2,6 +2,7 @@ import sys
 from constants import *
 from environment import *
 from state import State
+import heapq
 
 """
 solution.py
@@ -13,16 +14,52 @@ You should implement
 COMP3702 2024 Assignment 1 Support Code
 """
 
-
 class Solver:
 
     def __init__(self, environment, loop_counter):
         self.environment = environment
         self.loop_counter = loop_counter
-        #
-        # TODO: Define any class instance variables you require here.
-        # NOTE: avoid performing any computationally expensive heuristic preprocessing operations here - use the preprocess_heuristic method below for this purpose
-        #
+
+    class StateNode:
+        def __init__(self, env, state, parent=None, action=None, cost=0):
+            """
+            :param env: environment
+            :param state: state belonging to this node
+            :param parent: parent of this node
+            :param action: FORWARD, REVERSE, SPIN_LEFT, SPIN_RIGHT
+            :param cost: the cost of the step 
+            """
+            self.env = env
+            self.state = state
+            self.parent = parent
+            self.action = action
+            self.cost = cost
+
+        def get_path(self):
+            """
+            :return: A list of actions
+            """
+            path = []
+            current = self
+            while current.parent is not None:
+                path.append(current.action)
+                current = current.parent
+            path.reverse()
+            return path
+        
+        def get_successors(self):
+            """
+            :return: A list of successors StateNodes
+            """
+            successors = []
+            for act in BEE_ACTIONS:
+                success, action_cost, next_state = self.env.perform_action(self.state, act)
+                if success:
+                    successors.append(Solver.StateNode(self.env, next_state, self, act, self.cost + action_cost))
+            return successors
+
+        def __lt__(self, other):
+            return self.cost < other.cost
 
     # === Uniform Cost Search ==========================================================================================
     def solve_ucs(self):
@@ -30,27 +67,26 @@ class Solver:
         Find a path which solves the environment using Uniform Cost Search (UCS).
         :return: path (list of actions, where each action is an element of BEE_ACTIONS)
         """
+        initial_state = self.environment.get_init_state()
+        frontier = [self.StateNode(self.environment, initial_state)]
+        heapq.heapify(frontier)
 
-        #
-        #
-        # TODO: Implement your UCS code here
-        #
-        # === Important ================================================================================================
-        # To ensure your code works correctly with tester, you should include the following line of code in your main
-        # search loop:
-        #
-        # self.loop_counter.inc()
-        #
-        # e.g.
-        # while loop_condition(): // (While exploring frontier)
-        #   self.loop_counter.inc()
-        #   ...
-        #
-        # ==============================================================================================================
-        #
-        #
+        visited = {initial_state: 0}
+        
+        while frontier:
+            self.loop_counter.inc()
+            node = heapq.heappop(frontier)
 
-        pass
+            if self.environment.is_solved(node.state):
+                return node.get_path()
+            
+            successors = node.get_successors()
+            for s in successors:
+                if s.state not in visited or s.cost < visited[s.state]:
+                    visited[s.state] = s.cost
+                    heapq.heappush(frontier, s)
+
+        return None
 
     # === A* Search ====================================================================================================
 
@@ -58,17 +94,6 @@ class Solver:
         """
         Perform pre-processing (e.g. pre-computing repeatedly used values) necessary for your heuristic,
         """
-
-        #
-        #
-        # TODO: (Optional) Implement code for any preprocessing required by your heuristic here (if your heuristic
-        #  requires preprocessing).
-        #
-        # If you choose to implement code here, you should call this method from your solve_a_star method (e.g. once at
-        # the beginning of your search).
-        #
-        #
-
         pass
 
     def compute_heuristic(self, state):
@@ -77,15 +102,6 @@ class Solver:
         :param state: given state (GameState object)
         :return a real number h(n)
         """
-
-        #
-        #
-        # TODO: Implement your heuristic function for A* search here.
-        #
-        # You should call this method from your solve_a_star method (e.g. every time you need to compute a heuristic
-        # value for a state).
-        #
-
         pass
 
     def solve_a_star(self):
@@ -93,30 +109,4 @@ class Solver:
         Find a path which solves the environment using A* search.
         :return: path (list of actions, where each action is an element of BEE_ACTIONS)
         """
-
-        #
-        #
-        # TODO: Implement your A* search code here
-        #
-        # === Important ================================================================================================
-        # To ensure your code works correctly with tester, you should include the following line of code in your main
-        # search loop:
-        #
-        # self.loop_counter.inc()
-        #
-        # e.g.
-        # while loop_condition(): //
-        #   self.loop_counter.inc()
-        #   ...
-        #
-        # ==============================================================================================================
-        #
-        #
-
         pass
-
-    #
-    #
-    # TODO: Add any additional methods here
-    #
-    #
