@@ -108,7 +108,6 @@ class Solver:
             widget_get_occupied_cells(self.environment.widget_types[i], state.widget_centres[i], state.widget_orients[i])
             for i in range(self.environment.n_widgets)
         ]
-
         for tgt in self.environment.target_list:
             min_distance = float('inf')
             target_covered = False
@@ -125,24 +124,18 @@ class Solver:
             if not target_covered:
                 # Add to the heuristic
                 uncovered_targets += 1
-                total_distance += min_distance
-        
-        bee_distance = float('inf')
-        for tgt in self.environment.target_list:
-            # Manhatton distance of bee to the target widget
-            distance = abs(tgt[0] - state.BEE_posit[0]) + abs(tgt[1] - state.BEE_posit[1])
-            bee_distance = min(bee_distance, distance)
+                total_distance += min_distance                
 
         """
-        Total the heuristic:
-        (
-            (amount of uncovered targets) 
-            + (aggregate distance between widgets current state and target state) 
-            + (aggregate distance between widget target location and bee position)
-        )
-        x difference between pushing and pulling widgets to punish pushing as it costs more
+        Heuristic:
+        amount of uncovered targets
+            + (
+                aggregate distance between widgets current state and target state
+                x 
+                difference between pushing and pulling widgets to punish pushing as it costs more
+            )
         """
-        heuristic = (uncovered_targets + total_distance + bee_distance) * (ACTION_PUSH_COST[FORWARD] - ACTION_PUSH_COST[REVERSE])
+        heuristic = uncovered_targets + ((total_distance) * (ACTION_PUSH_COST[FORWARD] - ACTION_PUSH_COST[REVERSE]))
         return heuristic
 
     def solve_a_star(self):
