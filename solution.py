@@ -62,12 +62,13 @@ class Solver:
             return self.cost < other.cost
 
     # === Uniform Cost Search ==========================================================================================
-    def solve_ucs(self):
+    def solve_ucs(self, verbose=True):
         """
         Find a path which solves the environment using Uniform Cost Search (UCS).
         :return: path (list of actions, where each action is an element of BEE_ACTIONS)
         """
         initial_state = self.environment.get_init_state()
+        n_expanded = 0
         frontier = [self.StateNode(self.environment, initial_state)]
         heapq.heapify(frontier)
 
@@ -75,9 +76,14 @@ class Solver:
         
         while frontier:
             self.loop_counter.inc()
+            n_expanded += 1
             node = heapq.heappop(frontier)
 
             if self.environment.is_solved(node.state):
+                if verbose:
+                    print(f'Visited Nodes: {len(visited.keys())},\t\tExpanded Nodes: {n_expanded},\t\t'
+                        f'Nodes in Frontier: {len(frontier)}')
+                    print(f'Cost of Path (with Costly Moves): {node.cost}')
                 return node.get_path()
             
             successors = node.get_successors()
@@ -102,7 +108,26 @@ class Solver:
         :param state: given state (GameState object)
         :return a real number h(n)
         """
+        def hex_distance(row1, col1, row2, col2, memo):
+            if (row1, col1, row2, col2) in memo:
+                return memo[(row1, col1, row2, col2)]
+            
+            def to_cube(row, col):
+                x = col - (row - (row & 1)) // 2
+                z = row
+                y = -x - z
+                return x, y, z
+
+            x1, y1, z1 = to_cube(row1, col1)
+            x2, y2, z2 = to_cube(row2, col2)
+            distance = (abs(x2 - x1) + abs(y2 - y1) + abs(z2 - z1)) // 2
+            memo[(row1, col1, row2, col2)] = distance
+            return distance
+    
         uncovered_targets = 0
+        total_distance = 0
+        memo = {}
+
         total_distance = 0
         widget_cells = [
             widget_get_occupied_cells(self.environment.widget_types[i], state.widget_centres[i], state.widget_orients[i])
@@ -118,7 +143,7 @@ class Solver:
                     break
                 for cell in widget_cells[i]:
                     # Manhattan distance between the widgets target and the unsolved widgets
-                    distance = abs(tgt[0] - cell[0]) + abs(tgt[1] - cell[1])
+                    distance = hex_distance(tgt[0], tgt[1], cell[0], cell[1], memo)
                     min_distance = min(min_distance, distance)
 
             if not target_covered:
@@ -138,7 +163,7 @@ class Solver:
         heuristic = uncovered_targets + ((total_distance) * (ACTION_PUSH_COST[FORWARD] - ACTION_PUSH_COST[REVERSE]))
         return heuristic
 
-    def solve_a_star(self):
+    def solve_a_star(self, verbose=True):
         """
         Find a path which solves the environment using A* search.
         :return: path (list of actions, where each action is an element of BEE_ACTIONS)
@@ -155,6 +180,10 @@ class Solver:
             _, node = heapq.heappop(frontier)
 
             if self.environment.is_solved(node.state):
+                if verbose:
+                    print(f'Visited Nodes: {len(visited.keys())},\t\tExpanded Nodes: {n_expanded},\t\t'
+                      f'Nodes in Frontier: {len(frontier)}')
+                    print(f'Cost of Path (with Costly Moves): {node.cost}')
                 return node.get_path()
             
             successors = node.get_successors()
