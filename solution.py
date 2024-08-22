@@ -114,23 +114,34 @@ class Solver:
             target_covered = False
             for i in range(self.environment.n_widgets):
                 if tgt in widget_cells[i]:
+                    # Check if widget target is filled
                     target_covered = True
                     break
                 for cell in widget_cells[i]:
-                    # Manhattan distance of widget
+                    # Manhattan distance between the widgets target and the unsolved widgets
                     distance = abs(tgt[0] - cell[0]) + abs(tgt[1] - cell[1])
                     min_distance = min(min_distance, distance)
 
             if not target_covered:
+                # Add to the heuristic
                 uncovered_targets += 1
                 total_distance += min_distance
         
         bee_distance = float('inf')
         for tgt in self.environment.target_list:
-            # Manhatton distance of bee to the widget target
+            # Manhatton distance of bee to the target widget
             distance = abs(tgt[0] - state.BEE_posit[0]) + abs(tgt[1] - state.BEE_posit[1])
             bee_distance = min(bee_distance, distance)
 
+        """
+        Total the heuristic:
+        (
+            (amount of uncovered targets) 
+            + (aggregate distance between widgets current state and target state) 
+            + (aggregate distance between widget target location and bee position)
+        )
+        x difference between pushing and pulling widgets to punish pushing as it costs more
+        """
         heuristic = (uncovered_targets + total_distance + bee_distance) * (ACTION_PUSH_COST[FORWARD] - ACTION_PUSH_COST[REVERSE])
         return heuristic
 
@@ -158,3 +169,4 @@ class Solver:
                 if s.state not in visited.keys() or s.cost < visited[s.state]:
                     visited[s.state] = s.cost
                     heapq.heappush(frontier, (s.cost + self.compute_heuristic(s.state), s))
+        return None
